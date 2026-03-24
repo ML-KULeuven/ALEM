@@ -1,4 +1,4 @@
-
+[![DOI](https://sandbox.zenodo.org/badge/1095802155.svg)](https://handle.test.datacite.org/10.5072/zenodo.473560)
 # ALEM (Anytime Lexicographic Enumeration for Multi objective problems)
 
 ## Overview
