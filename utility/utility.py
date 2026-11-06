@@ -6,10 +6,12 @@ import os
 import numpy as np
 import random
 import math
+from time import perf_counter
 from matplotlib import pyplot as plt
 import cpmpy as cpmpy
 from cpmpy import *
 from cpmpy.solvers import CPM_ortools, CPM_gurobi
+from cpmpy.solvers.solver_interface import ExitStatus
 from utility.grid_class import Grid
 
 
@@ -253,17 +255,42 @@ def general_solve(cache, batches_weights, objectives, time_limit, new_constraint
             return False
     if solver=='gurobi_inc':
         model_gurobi = cache
-        if hint is not None:
-            model_gurobi.solution_hint(objectives,hint)
-        for cons in new_constraints:
-            model_gurobi.add_temp(cons)
-        model_gurobi.lex_solve(objectives)
-        if model_gurobi.solve(threads=8, time_limit=time_limit):
-            model_gurobi.remove_temp()
-            return True
-        else:
-            model_gurobi.remove_temp()
-            return False
+        # CPMpy 0.9's Gurobi interface does not implement solution_hint().
+        # Tamby's hint is optional and only affects warm-start performance.
+        native = model_gurobi.native_model
+        native.update()
+        original_constraints = set(native.getConstrs())
+        original_variables = set(native.getVars())
+        started = perf_counter()
+        success = True
+        try:
+            for cons in new_constraints:
+                model_gurobi += cons
+            # Current CPMpy no longer provides the repository's old lex_solve,
+            # add_temp, and remove_temp extensions. Perform the same strict
+            # lexicographic solve explicitly and remove every posted constraint
+            # afterwards, keeping the compiled base model persistent.
+            for objective in objectives:
+                remaining = time_limit - (perf_counter() - started)
+                if remaining <= 0:
+                    success = False
+                    break
+                model_gurobi.minimize(objective)
+                model_gurobi.solve(threads=8, time_limit=remaining, outputflag=0)
+                if model_gurobi.status().exitstatus != ExitStatus.OPTIMAL:
+                    success = False
+                    break
+                model_gurobi += objective == objective.value()
+        finally:
+            native.update()
+            temporary_constraints = [c for c in native.getConstrs() if c not in original_constraints]
+            temporary_variables = [v for v in native.getVars() if v not in original_variables]
+            if temporary_constraints:
+                native.remove(temporary_constraints)
+            if temporary_variables:
+                native.remove(temporary_variables)
+            native.update()
+        return success
 
 
 
@@ -349,8 +376,8 @@ def filter_weakly_dominated(sols,weights):
 
 
 
-def distribute_numbers(x):
-    base, remainder = divmod(15, x)
+def distribute_numbers(x, total=15):
+    base, remainder = divmod(total, x)
     return [base] * (x - remainder) + [base + 1] * remainder
 
 

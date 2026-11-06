@@ -1,0 +1,69 @@
+{
+  "width": 20,
+  "height": 20,
+  "cells": 400,
+  "species": 15,
+  "instances": [
+    {
+      "index": 0,
+      "seed": 20261106
+    },
+    {
+      "index": 1,
+      "seed": 20261107
+    },
+    {
+      "index": 2,
+      "seed": 20261108
+    },
+    {
+      "index": 3,
+      "seed": 20261109
+    },
+    {
+      "index": 4,
+      "seed": 20261110
+    },
+    {
+      "index": 5,
+      "seed": 20261111
+    },
+    {
+      "index": 6,
+      "seed": 20261112
+    },
+    {
+      "index": 7,
+      "seed": 20261113
+    },
+    {
+      "index": 8,
+      "seed": 20261114
+    },
+    {
+      "index": 9,
+      "seed": 20261115
+    }
+  ],
+  "generator_parameters": {
+    "initial_cost": 3,
+    "populations_per_species": [
+      2,
+      4
+    ],
+    "population_size": [
+      50
+    ],
+    "threshold_ratio": [
+      0.3,
+      0.5,
+      0.7
+    ],
+    "cities": 5,
+    "max_city_size": 5,
+    "lakes": 5,
+    "max_lake_radius": 4,
+    "forests": 5,
+    "max_forest_radius": 5
+  }
+}

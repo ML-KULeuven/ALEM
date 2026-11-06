@@ -14,7 +14,9 @@ from utility.utility import distribute_numbers
 
 class LandConModel():
 
-    def __init__(self, grid, obj):
+    def __init__(self, grid, obj, compactness_formulation="extrema"):
+        if compactness_formulation not in {"extrema", "pairwise"}:
+            raise ValueError("compactness_formulation must be 'extrema' or 'pairwise'")
         self.cost = 0
         self.solutions = []
         self.grid = grid
@@ -24,6 +26,7 @@ class LandConModel():
             self.cost += np.sum(cost_cell)
         self.budget = self.cost // 2
         self.obj = obj
+        self.compactness_formulation = compactness_formulation
 
     def make_model(self):
         variables = {}
@@ -31,11 +34,13 @@ class LandConModel():
 
         lands = boolvar(shape=(self.height, self.width), name="lands")
         saved = boolvar(shape=self.grid.animals, name="specie")
-        compactness = intvar(0, self.grid.width * 2, name="compactness")
-        sum_saved = intvar(-15, 0, name="sum_saved")
-        sum_population = intvar(-6000, 0, name="sum_population")
+        max_compactness = self.grid.height + self.grid.width - 2
+        max_population = int(np.sum(self.grid.grid_species))
+        compactness = intvar(0, max_compactness, name="compactness")
+        sum_saved = intvar(-self.grid.animals, 0, name="sum_saved")
+        sum_population = intvar(-max_population, 0, name="sum_population")
         if self.obj > 3:
-            new_sum_population = intvar(shape=self.obj - 3, lb=-6000, ub=0, name="new_sum_population")
+            new_sum_population = intvar(shape=self.obj - 3, lb=-max_population, ub=0, name="new_sum_population")
         budget_spent = intvar(0, self.budget, name="budget_spent")
 
         model += (budget_spent == sum(lands * self.grid.grid_cost))
@@ -54,17 +59,39 @@ class LandConModel():
         for animal in range(self.grid.animals):
             model += (saved[animal] == (population[animal] >= self.grid.species_threshold[animal]))
 
-        rows = list(range(self.grid.height))
-        cols = list(range(self.grid.width))
-        coordinates = list(itertools.product(rows, cols))
-        coordinates_pair = list(itertools.combinations(coordinates, 2))
+        rows = range(self.grid.height)
+        cols = range(self.grid.width)
+        if self.compactness_formulation == "pairwise":
+            coordinates = list(itertools.product(rows, cols))
+            distance_matrix = self.grid.get_distance_matrix()
+            for cell_1, cell_2 in itertools.combinations(coordinates, 2):
+                distance = distance_matrix[cell_1[0], cell_1[1], cell_2[0], cell_2[1]]
+                model += (-compactness + distance * lands[cell_1] + distance * lands[cell_2]) <= distance
+        else:
+            # In two dimensions, the maximum Manhattan distance in a selected
+            # set is exactly the larger range of (row + col) and (row - col).
+            # Tracking those four extrema is equivalent to all pairwise bounds
+            # after projecting out the auxiliary variables, but needs O(cells)
+            # constraints instead of O(cells**2).
+            min_diagonal = -(self.grid.width - 1)
+            max_diagonal = self.grid.height - 1
+            max_sum = max_compactness
+            max_sum_selected = intvar(0, max_sum, name="max_sum_selected")
+            min_sum_selected = intvar(0, max_sum, name="min_sum_selected")
+            max_diagonal_selected = intvar(min_diagonal, max_diagonal, name="max_diagonal_selected")
+            min_diagonal_selected = intvar(min_diagonal, max_diagonal, name="min_diagonal_selected")
 
-        # compactness as maximal radius distance
-        # compactness = max(self.grid.grid_distance[c1[0], c1[1], c2[0], c2[1]] * (lands[c1] & lands[c2]) for c1, c2 in coordinates_pair)
+            for row, col in itertools.product(rows, cols):
+                selected = lands[row, col]
+                coordinate_sum = row + col
+                coordinate_diagonal = row - col
+                model += max_sum_selected >= coordinate_sum - max_compactness * (1 - selected)
+                model += min_sum_selected <= coordinate_sum + max_compactness * (1 - selected)
+                model += max_diagonal_selected >= coordinate_diagonal - max_compactness * (1 - selected)
+                model += min_diagonal_selected <= coordinate_diagonal + max_compactness * (1 - selected)
 
-        for cell_1, cell_2 in coordinates_pair:
-            distance = self.grid.grid_distance[cell_1[0], cell_1[1], cell_2[0], cell_2[1]]
-            model += (-1 * compactness + distance * lands[cell_1] + distance * lands[cell_2]) <= distance
+            model += compactness >= max_sum_selected - min_sum_selected
+            model += compactness >= max_diagonal_selected - min_diagonal_selected
 
         model += (budget_spent == 0).implies(compactness == 0)
         model += (compactness == 0).implies(budget_spent == 0)
@@ -81,7 +108,7 @@ class LandConModel():
             default_value = [int(1e5), int(1e2), 1]
             objective_names = ['sum_saved', 'budget_spent', 'compactness']
         if self.obj == 4:
-            extinction_risk = distribute_numbers(self.obj - 3)
+            extinction_risk = distribute_numbers(self.obj - 3, self.grid.animals)
             i = 0
             for index in range(self.obj - 3):
                 model += new_sum_population == -sum(
@@ -92,7 +119,7 @@ class LandConModel():
             objective_names = ['sum_saved', 'budget_spent', 'compactness'] + [f'population_{index}' for index in
                                                                               range(self.obj - 3)]
         if self.obj > 4:
-            extinction_risk = distribute_numbers(self.obj - 3)
+            extinction_risk = distribute_numbers(self.obj - 3, self.grid.animals)
             i = 0
             for index in range(self.obj - 3):
                 model += new_sum_population[index] == -sum(

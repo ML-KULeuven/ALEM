@@ -1,0 +1,33 @@
+{
+  "width": 30,
+  "height": 30,
+  "cells": 900,
+  "species": 15,
+  "instances": [
+    {
+      "index": 0,
+      "seed": 20261106
+    }
+  ],
+  "generator_parameters": {
+    "initial_cost": 3,
+    "populations_per_species": [
+      2,
+      4
+    ],
+    "population_size": [
+      50
+    ],
+    "threshold_ratio": [
+      0.3,
+      0.5,
+      0.7
+    ],
+    "cities": 5,
+    "max_city_size": 5,
+    "lakes": 5,
+    "max_lake_radius": 4,
+    "forests": 5,
+    "max_forest_radius": 5
+  }
+}

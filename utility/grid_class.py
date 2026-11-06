@@ -9,7 +9,8 @@ from matplotlib import pyplot as plt
 
 class Grid:
 
-    def __init__(self, width=10, height=10, initial_cost=1, animals=15, path_grid='', path_threshold=''):
+    def __init__(self, width=10, height=10, initial_cost=1, animals=15, path_grid='', path_threshold='',
+                 compute_distances=False):
         if path_grid == '':
             self.width = width
             self.height = height
@@ -20,13 +21,14 @@ class Grid:
             self.grid_species = [[[0 for _ in range(self.width)] for _ in range(self.height)] for _ in range(self.animals)]
             self.grid_species = np.asarray(self.grid_species)
             self.species_threshold = [0 for _ in range(self.animals)]
-            self.grid_distance = self.compute_matrix_distance()
+            self.grid_distance = self.compute_matrix_distance() if compute_distances else None
         else:
             df_grid = pd.read_csv(path_grid)
             df_species = pd.read_csv(path_threshold)
             self.height = df_grid['row'].max() + 1
             self.width = df_grid['col'].max() + 1
-            self.animals = len(df_grid.columns) - 4
+            species_columns = [column for column in df_grid.columns if column.startswith('specie ')]
+            self.animals = len(species_columns)
             self.grid_cost = [[initial_cost for _ in range(self.width)]
                               for _ in range(self.height)]
             self.grid_cost = np.asarray(self.grid_cost)
@@ -34,13 +36,13 @@ class Grid:
                                  range(self.animals)]
             self.species_threshold = [0 for _ in range(self.animals)]
             self.grid_species = np.asarray(self.grid_species)
-            self.grid_distance = self.compute_matrix_distance()
+            self.grid_distance = self.compute_matrix_distance() if compute_distances else None
             for index, row in df_grid.iterrows():
-                index_row = row['row']
-                index_col = row['col']
+                index_row = int(row['row'])
+                index_col = int(row['col'])
                 self.grid_cost[index_row][index_col] = row['cost']
-                for i in range(animals):
-                    self.grid_species[i][index_row][index_col] = row['specie {}'.format(i)]
+                for i, column in enumerate(species_columns):
+                    self.grid_species[i][index_row][index_col] = row[column]
             for index, row in df_species.iterrows():
                 self.add_specie_threshold(index,row['thr'])
 
@@ -48,14 +50,18 @@ class Grid:
         rows = list(range(self.height))
         cols = list(range(self.width))
         crds = list(itertools.product(rows, cols))
-        coordinates_pair = list(itertools.combinations_with_replacement(crds, 2)) #or permutations?
         distance_matrix = np.zeros((self.height, self.width, self.height, self.width), dtype=int)
-        for cell_1, cell_2 in coordinates_pair:
+        for cell_1, cell_2 in itertools.combinations_with_replacement(crds, 2):
             cell_1 = np.asarray(cell_1)
             cell_2 = np.asarray(cell_2)
             distance_matrix[cell_1[0], cell_1[1], cell_2[0], cell_2[1]] = np.abs(cell_1[0] - cell_2[0]) + np.abs(cell_1[1] - cell_2[1])
             distance_matrix[cell_2[0], cell_2[1], cell_1[0], cell_1[1]] = np.abs(cell_1[0] - cell_2[0]) + np.abs(cell_1[1] - cell_2[1])
         return distance_matrix
+
+    def get_distance_matrix(self):
+        if self.grid_distance is None:
+            self.grid_distance = self.compute_matrix_distance()
+        return self.grid_distance
 
 
     def add_specie(self, position, cov, size, index_specie):
@@ -125,6 +131,3 @@ class Grid:
     def show_specie_map(self,index):
         plt.imshow(self.grid_species[index], cmap='hot', interpolation='nearest')
         plt.show()
-
-
-
