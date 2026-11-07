@@ -1,0 +1,24 @@
+[
+  {
+    "instance": 8,
+    "returncode": 0,
+    "wall_seconds": 7203.2524041100405,
+    "result": "results/coverage_20x20_15sp_4obj_2h/instance_8.json",
+    "log": "results/coverage_20x20_15sp_4obj_2h/instance_8.log",
+    "points": 4717,
+    "complete": false,
+    "stop_reason": "time_limit",
+    "remaining_upper_bounds": 1559
+  },
+  {
+    "instance": 9,
+    "returncode": 0,
+    "wall_seconds": 7201.909792008344,
+    "result": "results/coverage_20x20_15sp_4obj_2h/instance_9.json",
+    "log": "results/coverage_20x20_15sp_4obj_2h/instance_9.log",
+    "points": 4549,
+    "complete": false,
+    "stop_reason": "time_limit",
+    "remaining_upper_bounds": 1366
+  }
+]
