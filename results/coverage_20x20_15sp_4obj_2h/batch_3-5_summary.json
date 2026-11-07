@@ -1,0 +1,35 @@
+[
+  {
+    "instance": 3,
+    "returncode": 0,
+    "wall_seconds": 7201.910020901996,
+    "result": "results/coverage_20x20_15sp_4obj_2h/instance_3.json",
+    "log": "results/coverage_20x20_15sp_4obj_2h/instance_3.log",
+    "points": 5036,
+    "complete": false,
+    "stop_reason": "time_limit",
+    "remaining_upper_bounds": 1492
+  },
+  {
+    "instance": 4,
+    "returncode": 0,
+    "wall_seconds": 7202.220148750988,
+    "result": "results/coverage_20x20_15sp_4obj_2h/instance_4.json",
+    "log": "results/coverage_20x20_15sp_4obj_2h/instance_4.log",
+    "points": 5678,
+    "complete": false,
+    "stop_reason": "time_limit",
+    "remaining_upper_bounds": 1059
+  },
+  {
+    "instance": 5,
+    "returncode": 0,
+    "wall_seconds": 7203.4289840409765,
+    "result": "results/coverage_20x20_15sp_4obj_2h/instance_5.json",
+    "log": "results/coverage_20x20_15sp_4obj_2h/instance_5.log",
+    "points": 4779,
+    "complete": false,
+    "stop_reason": "time_limit",
+    "remaining_upper_bounds": 1694
+  }
+]
